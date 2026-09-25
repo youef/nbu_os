@@ -1,0 +1,47 @@
+name: Publish NBU-OS release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential binutils grub-pc-bin grub-common xorriso zip
+
+      - name: Generate project
+        run: ./build_nbu.sh
+
+      - name: Build ISO
+        working-directory: NBU-OS
+        run: ./scripts/build.sh
+
+      - name: Create UTM bundle
+        working-directory: NBU-OS
+        run: ./scripts/create-utm.sh
+
+      - name: Package UTM bundle
+        working-directory: NBU-OS/dist
+        run: zip -qr NBU-OS-UTM.zip NBU-OS.utm
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NBU-OS ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: true
+          files: |
+            NBU-OS/dist/NBU-OS.iso
+            NBU-OS/dist/NBU-OS-UTM.zip
