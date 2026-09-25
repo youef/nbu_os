@@ -1,9 +1,10 @@
 #include <stdint.h>
+#include <nbu/security.h>
 
 static volatile uint16_t *const vga = (uint16_t *)0xb8000;
 static uint16_t cursor;
 static char installed_user[32];
-static char installed_password[32];
+static uint8_t installed_password_hash[32];
 
 typedef void (*program_entry_t)(void);
 
@@ -118,8 +119,11 @@ static void installer(void) {
     puts("Create the first local account.\n");
     puts("Username: ");
     read_line(installed_user, sizeof(installed_user), 0);
+    char password[32];
     puts("Password: ");
-    read_line(installed_password, sizeof(installed_password), 1);
+    read_line(password, sizeof(password), 1);
+    nbu_password_hash(password, installed_password_hash);
+    for (uint32_t index = 0; index < sizeof(password); ++index) password[index] = 0;
     puts("\nInstalling NBU-OS core... OK\n");
     puts("Registering private program ABI... OK\n");
     puts("Installation complete. Press ENTER to continue.");
@@ -129,13 +133,16 @@ static void installer(void) {
 static int login(void) {
     char username[32];
     char password[32];
+    uint8_t password_hash[32];
     clear_screen();
     puts("NBU-OS LOGIN\n\n");
     puts("User: ");
     read_line(username, sizeof(username), 0);
     puts("Password: ");
     read_line(password, sizeof(password), 1);
-    if (text_equal(username, installed_user) && text_equal(password, installed_password)) return 1;
+    nbu_password_hash(password, password_hash);
+    for (uint32_t index = 0; index < sizeof(password); ++index) password[index] = 0;
+    if (text_equal(username, installed_user) && nbu_secure_equal(password_hash, installed_password_hash, sizeof(password_hash))) return 1;
     puts("\nLogin failed. Press ENTER to retry.");
     while (read_key() != '\n') { }
     return 0;

@@ -16,11 +16,14 @@ $(BUILD):
 $(BUILD)/multiboot2.o: boot/multiboot2.S | $(BUILD)
 	$(AS) --32 $< -o $@
 
-$(BUILD)/kernel.o: kernel/kernel.c | $(BUILD)
+$(BUILD)/kernel.o: kernel/kernel.c include/nbu/security.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/nbu-kernel.elf: $(BUILD)/multiboot2.o $(BUILD)/kernel.o linker.ld
-	$(LD) $(LDFLAGS) -o $@ $(BUILD)/multiboot2.o $(BUILD)/kernel.o
+$(BUILD)/security.o: kernel/security.c include/nbu/security.h | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/nbu-kernel.elf: $(BUILD)/multiboot2.o $(BUILD)/kernel.o $(BUILD)/security.o linker.ld
+	$(LD) $(LDFLAGS) -o $@ $(BUILD)/multiboot2.o $(BUILD)/kernel.o $(BUILD)/security.o
 
 iso: all
 	rm -rf $(BUILD)/iso

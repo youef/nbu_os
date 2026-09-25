@@ -14,6 +14,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y build-essential binutils grub-pc-bin grub-common xorriso
       - name: Generate project
         run: ./build_nbu.sh
+      - name: Validate generated source
+        run: |
+          bash -n build_nbu.sh
+          test -f NBU-OS/kernel/security.c
+          test -f NBU-OS/include/nbu/security.h
+          ! grep -q 'installed_password\[' NBU-OS/kernel/kernel.c
+          make -C NBU-OS clean all
       - name: Build ISO
         working-directory: NBU-OS
         run: ./scripts/build.sh

@@ -238,9 +238,6 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info) {
         for (;;) __asm__ volatile ("hlt");
     }
 
-if [[ -f "$ROOT/kernel.template.c" ]]; then
-    cp "$ROOT/kernel.template.c" "$OUT/kernel/kernel.c"
-fi
     clear_screen();
     puts("NBU-OS | Yusuf Alhazmi\n");
     puts("Northern Borders University\n");
@@ -251,15 +248,31 @@ fi
     desktop();
 }'
 
+if [[ -f "$ROOT/kernel.template.c" ]]; then
+    cp "$ROOT/kernel.template.c" "$OUT/kernel/kernel.c"
+fi
+if [[ -f "$ROOT/security.template.c" ]]; then
+    cp "$ROOT/security.template.c" "$OUT/kernel/security.c"
+fi
+if [[ -f "$ROOT/security.template.h" ]]; then
+    mkdir -p "$OUT/include/nbu"
+    cp "$ROOT/security.template.h" "$OUT/include/nbu/security.h"
+fi
+
 write "$OUT/linker.ld" 'ENTRY(_start)
+PHDRS
+{
+    text PT_LOAD FLAGS(5);
+    data PT_LOAD FLAGS(6);
+}
 SECTIONS
 {
   . = 1M;
-  .multiboot : { KEEP(*(.multiboot)) }
-  .text : { *(.text*) }
-  .rodata : { *(.rodata*) }
-  .data : { *(.data*) }
-  .bss : { *(COMMON) *(.bss*) }
+    .multiboot : { KEEP(*(.multiboot)) } :text
+    .text : { *(.text*) } :text
+    .rodata : { *(.rodata*) } :text
+    .data : { *(.data*) } :data
+    .bss : { *(COMMON) *(.bss*) } :data
 }
 '
 
@@ -281,11 +294,14 @@ $(BUILD):
 $(BUILD)/multiboot2.o: boot/multiboot2.S | $(BUILD)
 	$(AS) --32 $< -o $@
 
-$(BUILD)/kernel.o: kernel/kernel.c | $(BUILD)
+$(BUILD)/kernel.o: kernel/kernel.c include/nbu/security.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/nbu-kernel.elf: $(BUILD)/multiboot2.o $(BUILD)/kernel.o linker.ld
-	$(LD) $(LDFLAGS) -o $@ $(BUILD)/multiboot2.o $(BUILD)/kernel.o
+$(BUILD)/security.o: kernel/security.c include/nbu/security.h | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/nbu-kernel.elf: $(BUILD)/multiboot2.o $(BUILD)/kernel.o $(BUILD)/security.o linker.ld
+	$(LD) $(LDFLAGS) -o $@ $(BUILD)/multiboot2.o $(BUILD)/kernel.o $(BUILD)/security.o
 
 iso: all
 	rm -rf $(BUILD)/iso
@@ -374,6 +390,16 @@ Build the ISO with ./scripts/build.sh, then attach dist/NBU-OS.iso to a new UTM 
 Press Enter at the installer screen, create the first username and password, then log in. The prototype desktop appears after successful login. The account is currently kept in memory for the current boot; persistent storage and password hashing are planned for a later filesystem phase.
 
 The GitHub Actions workflow builds the ISO and uploads it as an artifact on every push.'
+
+write "$OUT/docs/PRODUCTION.md" '# Production readiness
+
+NBU-OS is an independent kernel and system. It is not based on Linux and does not use the Linux ABI.
+
+Current foundations: reproducible generation, explicit ELF permissions, private NBU-EXEC-1 programs, SHA-256 password digests, constant-time comparison, and GitHub Actions ISO builds.
+
+Before a production release, NBU-OS still requires persistent encrypted accounts, signed boot, user-mode isolation, a validated external NBUX loader, drivers, a pinned toolchain, fuzzing, threat modeling, release signing, and independent security review.
+
+Credentials are currently held only for the current boot. Do not use the prototype for real institutional credentials.'
 
 mkdir -p "$OUT/dist"
 (cd "$ROOT" && zip -qr "$PROJECT.zip" "$PROJECT")
