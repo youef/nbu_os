@@ -1,0 +1,7 @@
+NBU-OS/build/
+NBU-OS/dist/
+*.zip
+*.o
+*.elf
+*.iso
+*.img
