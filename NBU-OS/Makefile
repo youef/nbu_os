@@ -16,7 +16,7 @@ $(BUILD):
 $(BUILD)/multiboot2.o: boot/multiboot2.S | $(BUILD)
 	$(AS) --32 $< -o $@
 
-$(BUILD)/kernel.o: kernel/kernel.c include/nbu/security.h | $(BUILD)
+$(BUILD)/kernel.o: kernel/kernel.c include/nbu/security.h include/nbu/system.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD)/security.o: kernel/security.c include/nbu/security.h | $(BUILD)

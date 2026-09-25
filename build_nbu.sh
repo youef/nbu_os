@@ -258,6 +258,10 @@ if [[ -f "$ROOT/security.template.h" ]]; then
     mkdir -p "$OUT/include/nbu"
     cp "$ROOT/security.template.h" "$OUT/include/nbu/security.h"
 fi
+if [[ -f "$ROOT/system.template.h" ]]; then
+    mkdir -p "$OUT/include/nbu"
+    cp "$ROOT/system.template.h" "$OUT/include/nbu/system.h"
+fi
 
 write "$OUT/linker.ld" 'ENTRY(_start)
 PHDRS
@@ -294,7 +298,7 @@ $(BUILD):
 $(BUILD)/multiboot2.o: boot/multiboot2.S | $(BUILD)
 	$(AS) --32 $< -o $@
 
-$(BUILD)/kernel.o: kernel/kernel.c include/nbu/security.h | $(BUILD)
+$(BUILD)/kernel.o: kernel/kernel.c include/nbu/security.h include/nbu/system.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD)/security.o: kernel/security.c include/nbu/security.h | $(BUILD)

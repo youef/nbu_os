@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <nbu/security.h>
+#include <nbu/system.h>
 
 static volatile uint16_t *const vga = (uint16_t *)0xb8000;
 static uint16_t cursor;
@@ -189,8 +190,8 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info) {
         for (;;) __asm__ volatile ("hlt");
     }
     clear_screen();
-    puts("NBU-OS | Yusuf Alhazmi\n");
-    puts("Private kernel | NBU-EXEC-1\n");
+    puts(NBU_SYSTEM_NAME " | " NBU_DEVELOPER "\n");
+    puts("Private kernel | " NBU_EXEC_ABI "\n");
     puts("Press ENTER to start the installer.\n");
     while (read_key() != '\n') { }
     installer();

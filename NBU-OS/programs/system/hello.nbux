@@ -1,0 +1,7 @@
+NBUX_VERSION=1
+PROGRAM_PATH=/system/hello
+PROGRAM_NAME=NBU Hello
+ABI=NBU-EXEC-1
+ENTRY=hello_program
+PERMISSIONS=console
+SIGNED=planned
