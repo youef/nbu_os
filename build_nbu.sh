@@ -42,7 +42,7 @@ sudo apt install build-essential binutils grub-pc-bin grub-common xorriso qemu-s
 تظهر الهوية في شاشة الإقلاع وسجل Serial. الاسم والجهة المذكوران أعلاه إعداد تخصيص، ويجب اعتماد الشعار الرسمي والتراخيص من الجهة المختصة قبل التوزيع العام.
 '
 
-write "$OUT/VERSION" '0.2.0-alpha'
+write "$OUT/VERSION" '0.3.0-alpha3'
 write "$OUT/config/platform.conf" '# Target platform
 ARCH=x86_64
 BOOT=multiboot2
@@ -241,8 +241,6 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info) {
     clear_screen();
     puts("NBU-OS | Yusuf Alhazmi\n");
     puts("Northern Borders University\n");
-    puts("Booting installer... Press ENTER.\n");
-    while (read_key() != '\''\n'\'') { }
     installer();
     while (!login()) { }
     desktop();
@@ -310,8 +308,8 @@ $(BUILD)/nbu-kernel.elf: $(BUILD)/multiboot2.o $(BUILD)/kernel.o $(BUILD)/securi
 iso: all
 	rm -rf $(BUILD)/iso
 	mkdir -p $(BUILD)/iso/boot/grub
-	cp $(BUILD)/nbu-kernel.elf $(BUILD)/iso/boot/nbu-kernel.elf
-	printf "set timeout=3\\nset default=0\\nmenuentry \\"NBU-OS - Digital Transformation\\" {\\n  multiboot2 /boot/nbu-kernel.elf\\n  boot\\n}\\n" > $(BUILD)/iso/boot/grub/grub.cfg
+    cp $(BUILD)/nbu-kernel.elf $(BUILD)/iso/boot/nbu-kernel.elf
+	printf "set timeout=0\\nset default=0\\nmenuentry \\"NBU-OS - Digital Transformation\\" {\\n  multiboot2 /boot/nbu-kernel.elf\\n  boot\\n}\\n" > $(BUILD)/iso/boot/grub/grub.cfg
 	grub-mkrescue -o $(DIST)/NBU-OS.iso $(BUILD)/iso
 
 clean:
@@ -391,7 +389,7 @@ sudo apt-get install -y build-essential binutils grub-pc-bin grub-common xorriso
 
 Build the ISO with ./scripts/build.sh, then attach dist/NBU-OS.iso to a new UTM x86_64 VM. On iPhone/iPad choose Emulate, assign at least 512 MB RAM, attach the ISO, and boot.
 
-Press Enter at the installer screen, create the first username and password, then log in. The prototype desktop appears after successful login. The account is currently kept in memory for the current boot; persistent storage and password hashing are planned for a later filesystem phase.
+The installer starts automatically after boot. Create the first username and password, then log in. The prototype desktop appears after successful login. The account is currently kept in memory for the current boot; persistent storage and password hashing are planned for a later filesystem phase.
 
 The GitHub Actions workflow builds the ISO and uploads it as an artifact on every push.'
 

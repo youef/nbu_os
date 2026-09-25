@@ -217,8 +217,6 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info) {
     puts("NBU-OS\n");
     puts(NBU_SYSTEM_NAME " | " NBU_DEVELOPER "\n");
     puts("Private kernel | " NBU_EXEC_ABI "\n");
-    puts("Press ENTER to start the installer.\n");
-    while (read_key() != '\n') { }
     installer();
     while (!login()) { }
     desktop();

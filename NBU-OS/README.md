@@ -14,7 +14,7 @@ cd ..
 ./check_iso.sh
 ```
 
-الناتجان `build/NBU-OS.iso` (CD/DVD) و`build/NBU-OS.img` (نسخة hybrid raw يتم اختبارها كقرص BIOS). بعد الإقلاع اضغط Enter، أنشئ المستخدم وكلمة المرور، ثم سجّل الدخول. من الطرفية الخاصة اكتب `exec /system/hello` لتشغيل البرنامج عبر واجهة `NBU-EXEC-1`، أو `shutdown` للإيقاف.
+الناتجان `build/NBU-OS.iso` (CD/DVD) و`build/NBU-OS.img` (نسخة hybrid raw يتم اختبارها كقرص BIOS). يبدأ المُثبّت تلقائيًا بعد الإقلاع؛ أنشئ المستخدم وكلمة المرور، ثم سجّل الدخول. من الطرفية الخاصة اكتب `exec /system/hello` لتشغيل البرنامج عبر واجهة `NBU-EXEC-1`، أو `shutdown` للإيقاف.
 
 في UTM SE اختر `x86_64` و`Standard PC (Q35 + ICH9)` وذاكرة `2048 MB` وBIOS. أرفق ISO كـ CD/DVD واجعل الإقلاع منه. الشبكة غير مطلوبة في هذه النسخة.
 

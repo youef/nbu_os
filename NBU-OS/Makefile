@@ -33,7 +33,7 @@ iso: all
 	mkdir -p $(BUILD)/iso/boot/grub
 	cp $(BUILD)/nbu-kernel.elf $(BUILD)/iso/boot/nbu-kernel.elf
 	cp VERSION $(BUILD)/iso/boot/NBU-OS.version
-	printf '%s\n' 'set timeout=3' 'set default=0' 'serial --unit=0 --speed=115200' 'terminal_input console serial' 'terminal_output console serial' 'menuentry "NBU-OS" {' '  echo "Loading NBU-OS kernel..."' '  multiboot2 /boot/nbu-kernel.elf' '  boot' '}' > $(BUILD)/iso/boot/grub/grub.cfg
+	printf '%s\n' 'set timeout=0' 'set default=0' 'serial --unit=0 --speed=115200' 'terminal_input console serial' 'terminal_output console serial' 'menuentry "NBU-OS" {' '  echo "Loading NBU-OS kernel..."' '  multiboot2 /boot/nbu-kernel.elf' '  boot' '}' > $(BUILD)/iso/boot/grub/grub.cfg
 	grub-mkrescue -o $(BUILD)/NBU-OS.iso $(BUILD)/iso
 	cp $(BUILD)/NBU-OS.iso $(BUILD)/NBU-OS.img
 
