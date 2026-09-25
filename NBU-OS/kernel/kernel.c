@@ -20,6 +20,27 @@ static uint8_t inb(uint16_t port) {
     return value;
 }
 
+static void outb(uint16_t port, uint8_t value) {
+    __asm__ volatile ("outb %0, %1" : : "a"(value), "Nd"(port));
+}
+
+static void serial_init(void) {
+    outb(0x3f9, 0x00);
+    outb(0x3fb, 0x80);
+    outb(0x3f8, 0x03);
+    outb(0x3f9, 0x00);
+    outb(0x3fb, 0x03);
+    outb(0x3fa, 0xc7);
+    outb(0x3fc, 0x0b);
+}
+
+static void serial_puts(const char *text) {
+    while (*text) {
+        while (!(inb(0x3fd) & 0x20)) { }
+        outb(0x3f8, (uint8_t)*text++);
+    }
+}
+
 static void clear_screen(void) {
     for (uint16_t index = 0; index < 80 * 25; ++index) vga[index] = 0x0720;
     cursor = 0;
@@ -184,12 +205,16 @@ static void desktop(void) {
 
 void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info) {
     (void)multiboot_info;
+    serial_init();
+    serial_puts("NBU-OS: kernel entry reached\r\n");
     if (multiboot_magic != 0x36d76289) {
         clear_screen();
         puts("NBU-OS: invalid Multiboot2 magic.\n");
+        serial_puts("NBU-OS: invalid Multiboot2 magic\r\n");
         for (;;) __asm__ volatile ("hlt");
     }
     clear_screen();
+    puts("NBU-OS\n");
     puts(NBU_SYSTEM_NAME " | " NBU_DEVELOPER "\n");
     puts("Private kernel | " NBU_EXEC_ABI "\n");
     puts("Press ENTER to start the installer.\n");

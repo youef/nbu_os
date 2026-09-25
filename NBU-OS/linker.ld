@@ -12,5 +12,6 @@ SECTIONS
   .rodata : { *(.rodata*) } :text
   .data : { *(.data*) } :data
   .bss : { *(COMMON) *(.bss*) } :data
+  /DISCARD/ : { *(.eh_frame*) *(.comment*) *(.note*) }
 }
 

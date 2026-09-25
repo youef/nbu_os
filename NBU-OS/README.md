@@ -4,23 +4,26 @@
 الهوية المطورة: **يوسف الحازمي**  
 الجهة: **جامعة الحدود الشمالية - الإدارة العامة للتحول الرقمي**
 
-هذه نسخة تأسيسية قابلة للإقلاع لمعمارية Intel x86. النواة مملوكة لهذا المشروع وليست Linux ولا تستخدم نواة أو ABI Linux. تستخدم GRUB Multiboot2 فقط كمرحلة تحميل، ولذلك تعمل في QEMU وUTM وVirtualBox وVMware وHyper-V عندما يوفّر الجهاز الافتراضي BIOS أو UEFI مع GRUB. على iPhone تستخدم UTM محاكاة x86، وقد تكون بطيئة.
+هذه نواة مستقلة قابلة للإقلاع لمعمارية `x86_64` وليست Linux. يستخدم المشروع GRUB Multiboot2 لتحميل ELF64، ثم ينتقل مدخل الإقلاع إلى long mode. لا تحتوي هذه النسخة على initramfs أو نظام ملفات جذري دائم أو تعريف شبكة؛ واجهة التثبيت والطرفية الحالية تعملان داخل النواة.
 
 ## البناء
 
 ```sh
-./scripts/build.sh
-./scripts/run-qemu.sh
+cd ..
+./build.sh
+./check_iso.sh
 ```
 
-الناتج هو `dist/NBU-OS.iso`. بعد الإقلاع اضغط Enter، أنشئ المستخدم وكلمة المرور، ثم سجّل الدخول. من الطرفية الخاصة اكتب `exec /system/hello` لتشغيل البرنامج عبر واجهة `NBU-EXEC-1`، أو `shutdown` للإيقاف.
+الناتجان `build/NBU-OS.iso` (CD/DVD) و`build/NBU-OS.img` (نسخة hybrid raw يتم اختبارها كقرص BIOS). بعد الإقلاع اضغط Enter، أنشئ المستخدم وكلمة المرور، ثم سجّل الدخول. من الطرفية الخاصة اكتب `exec /system/hello` لتشغيل البرنامج عبر واجهة `NBU-EXEC-1`، أو `shutdown` للإيقاف.
+
+في UTM SE اختر `x86_64` و`Standard PC (Q35 + ICH9)` وذاكرة `2048 MB` وBIOS. أرفق ISO كـ CD/DVD واجعل الإقلاع منه. الشبكة غير مطلوبة في هذه النسخة.
 
 ## المتطلبات
 
-`gcc`, `binutils`, `grub-mkrescue`, `xorriso`، و`qemu-system-x86_64` للاختبار. في Ubuntu/Debian:
+`gcc`, `binutils`, `grub-mkrescue`, `grub-file`, `xorriso`، و`qemu-system-x86_64`. في Ubuntu/Debian:
 
 ```sh
-sudo apt install build-essential binutils grub-pc-bin grub-common xorriso qemu-system-x86
+sudo apt install build-essential binutils grub-pc-bin grub-common xorriso qemu-system-x86 file
 ```
 
 لا يتم تفعيل Secure Boot أو تعريفات الأجهزة الحقيقية في هذه النسخة. `NBU-EXEC-1` حالياً يسجل البرامج المضمّنة داخل النواة؛ تحميل برامج خارجية من قرص مع عزل user-mode ونظام ملفات هو المرحلة التالية، وليس توافقاً تلقائياً مع ملفات Linux ELF أو Windows EXE.
