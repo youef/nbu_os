@@ -141,22 +141,35 @@ static int login(void) {
     return 0;
 }
 
-static void desktop(void) {
+static void desktop_banner(void) {
     clear_screen();
     puts("+------------------------------------------------------------------------------+\n");
     puts("| NBU-OS DESKTOP                 Yusuf Alhazmi                 [ONLINE]       |\n");
     puts("+------------------------------------------------------------------------------+\n\n");
-    puts("  [1] Run /system/hello     [Q] Shut down\n\n");
+    puts("  Private kernel terminal | Type help for commands.\n\n");
     puts("  Northern Borders University\n");
     puts("  General Administration of Digital Transformation\n\n");
     puts("  Private kernel ready. NBU-EXEC-1 program ABI active.\n");
+}
+
+static void desktop(void) {
+    char command[64];
+    desktop_banner();
     for (;;) {
-        char key = read_key();
-        if (key == '1') nbu_exec("/system/hello");
-        if (key == 'q') {
+        puts("\nnbu> ");
+        read_line(command, sizeof(command), 0);
+        if (text_equal(command, "help")) {
+            puts("Commands: help, exec /system/hello, clear, shutdown\n");
+        } else if (text_equal(command, "exec /system/hello")) {
+            if (nbu_exec("/system/hello") != 0) puts("exec: program not found\n");
+        } else if (text_equal(command, "clear")) {
+            desktop_banner();
+        } else if (text_equal(command, "shutdown")) {
             clear_screen();
             puts("NBU-OS is safe to power off.\n");
             for (;;) __asm__ volatile ("hlt");
+        } else if (command[0] != 0) {
+            puts("nbu: unknown command. Type help.\n");
         }
     }
 }

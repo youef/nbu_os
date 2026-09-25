@@ -8,7 +8,16 @@ NBU-OS uses a private program interface. It is not the Linux `execve` ABI and it
 - The kernel resolves the path in its program registry.
 - Each registered program has a `program_entry_t` entry function.
 - `nbu_exec(path)` invokes the entry and returns `0` on success or `-1` when the path is unknown.
-- `/system/hello` is the first built-in program and can be launched from the desktop with key `1`.
+- `/system/hello` is the first built-in program and can be launched from the private terminal with `exec /system/hello`.
+
+## Private terminal
+
+After login, the desktop accepts:
+
+- `help`
+- `exec /system/hello`
+- `clear`
+- `shutdown`
 
 ## Planned external format
 
