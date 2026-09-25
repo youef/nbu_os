@@ -308,7 +308,7 @@ $(BUILD)/nbu-kernel.elf: $(BUILD)/multiboot2.o $(BUILD)/kernel.o $(BUILD)/securi
 iso: all
 	rm -rf $(BUILD)/iso
 	mkdir -p $(BUILD)/iso/boot/grub
-    cp $(BUILD)/nbu-kernel.elf $(BUILD)/iso/boot/nbu-kernel.elf
+	cp $(BUILD)/nbu-kernel.elf $(BUILD)/iso/boot/nbu-kernel.elf
 	printf "set timeout=0\\nset default=0\\nmenuentry \\"NBU-OS - Digital Transformation\\" {\\n  multiboot2 /boot/nbu-kernel.elf\\n  boot\\n}\\n" > $(BUILD)/iso/boot/grub/grub.cfg
 	grub-mkrescue -o $(DIST)/NBU-OS.iso $(BUILD)/iso
 
