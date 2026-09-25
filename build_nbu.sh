@@ -237,6 +237,10 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info) {
         puts("NBU-OS: invalid Multiboot2 magic.\n");
         for (;;) __asm__ volatile ("hlt");
     }
+
+if [[ -f "$ROOT/kernel.template.c" ]]; then
+    cp "$ROOT/kernel.template.c" "$OUT/kernel/kernel.c"
+fi
     clear_screen();
     puts("NBU-OS | Yusuf Alhazmi\n");
     puts("Northern Borders University\n");
