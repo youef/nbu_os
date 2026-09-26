@@ -1,223 +1,39 @@
 #include <stdint.h>
 #include <nbu/security.h>
 #include <nbu/system.h>
-
-static volatile uint16_t *const vga = (uint16_t *)0xb8000;
-static uint16_t cursor;
-static char installed_user[32];
-static uint8_t installed_password_hash[32];
-
-typedef void (*program_entry_t)(void);
-
-typedef struct {
-    const char *path;
-    program_entry_t entry;
-} nbu_program_t;
-
-static uint8_t inb(uint16_t port) {
-    uint8_t value;
-    __asm__ volatile ("inb %1, %0" : "=a"(value) : "Nd"(port));
-    return value;
-}
-
-static void outb(uint16_t port, uint8_t value) {
-    __asm__ volatile ("outb %0, %1" : : "a"(value), "Nd"(port));
-}
-
-static void serial_init(void) {
-    outb(0x3f9, 0x00);
-    outb(0x3fb, 0x80);
-    outb(0x3f8, 0x03);
-    outb(0x3f9, 0x00);
-    outb(0x3fb, 0x03);
-    outb(0x3fa, 0xc7);
-    outb(0x3fc, 0x0b);
-}
-
-static void serial_puts(const char *text) {
-    while (*text) {
-        while (!(inb(0x3fd) & 0x20)) { }
-        outb(0x3f8, (uint8_t)*text++);
-    }
-}
-
-static void clear_screen(void) {
-    for (uint16_t index = 0; index < 80 * 25; ++index) vga[index] = 0x0720;
-    cursor = 0;
-}
-
-static void putc(char character) {
-    if (character == '\n') {
-        cursor = (uint16_t)(((cursor / 80) + 1) * 80);
-        return;
-    }
-    vga[cursor++] = (uint16_t)(0x0f00u | (uint8_t)character);
-    if (cursor >= 80 * 25) cursor = 0;
-}
-
-static void puts(const char *text) {
-    while (*text) putc(*text++);
-}
-
-static int text_equal(const char *left, const char *right) {
-    while (*left && *right && *left == *right) {
-        ++left;
-        ++right;
-    }
-    return *left == *right;
-}
-
-static char key_to_ascii(uint8_t scan_code) {
-    static const char keymap[] = "?1234567890-=qwertyuiop[]?asdfghjkl;\\`?zxcvbnm,./";
-    if (scan_code >= 2 && scan_code <= 53) return keymap[scan_code - 1];
-    if (scan_code == 57) return ' ';
-    return 0;
-}
-
-static char read_key(void) {
-    for (;;) {
-        uint8_t scan_code;
-        if (!(inb(0x64) & 1)) continue;
-        scan_code = inb(0x60);
-        if (scan_code & 0x80) continue;
-        if (scan_code == 28) return '\n';
-        if (scan_code == 14) return '\b';
-        return key_to_ascii(scan_code);
-    }
-}
-
-static void read_line(char *buffer, uint32_t capacity, int secret) {
-    uint32_t length = 0;
-    for (;;) {
-        char key = read_key();
-        if (key == '\n') {
-            putc('\n');
-            buffer[length] = 0;
-            return;
-        }
-        if (key == '\b') {
-            if (length > 0) {
-                --length;
-                if (cursor > 0) --cursor;
-                vga[cursor] = 0x0720;
-            }
-            continue;
-        }
-        if (key && length + 1 < capacity) {
-            buffer[length++] = key;
-            putc(secret ? '*' : key);
-        }
-    }
-}
-
-static void hello_program(void) {
-    clear_screen();
-    puts("NBU EXEC PROGRAM\n\n");
-    puts("Program: /system/hello\n");
-    puts("ABI: NBU-EXEC-1\n");
-    puts("This program is owned by NBU-OS and is not a Linux process.\n\n");
-    puts("Press ENTER to return to the desktop.");
-    while (read_key() != '\n') { }
-}
-
-static const nbu_program_t program_table[] = {
-    { "/system/hello", hello_program },
-};
-
-static int nbu_exec(const char *path) {
-    for (uint32_t index = 0; index < sizeof(program_table) / sizeof(program_table[0]); ++index) {
-        if (text_equal(path, program_table[index].path)) {
-            program_table[index].entry();
-            return 0;
-        }
-    }
-    return -1;
-}
-
-static void installer(void) {
-    clear_screen();
-    puts("NBU-OS INSTALLER\n");
-    puts("NBU-EXEC-1 private kernel edition\n\n");
-    puts("Create the first local account.\n");
-    puts("Username: ");
-    read_line(installed_user, sizeof(installed_user), 0);
-    char password[32];
-    puts("Password: ");
-    read_line(password, sizeof(password), 1);
-    nbu_password_hash(password, installed_password_hash);
-    for (uint32_t index = 0; index < sizeof(password); ++index) password[index] = 0;
-    puts("\nInstalling NBU-OS core... OK\n");
-    puts("Registering private program ABI... OK\n");
-    puts("Installation complete. Press ENTER to continue.");
-    while (read_key() != '\n') { }
-}
-
-static int login(void) {
-    char username[32];
-    char password[32];
-    uint8_t password_hash[32];
-    clear_screen();
-    puts("NBU-OS LOGIN\n\n");
-    puts("User: ");
-    read_line(username, sizeof(username), 0);
-    puts("Password: ");
-    read_line(password, sizeof(password), 1);
-    nbu_password_hash(password, password_hash);
-    for (uint32_t index = 0; index < sizeof(password); ++index) password[index] = 0;
-    if (text_equal(username, installed_user) && nbu_secure_equal(password_hash, installed_password_hash, sizeof(password_hash))) return 1;
-    puts("\nLogin failed. Press ENTER to retry.");
-    while (read_key() != '\n') { }
-    return 0;
-}
-
-static void desktop_banner(void) {
-    clear_screen();
-    puts("+------------------------------------------------------------------------------+\n");
-    puts("| NBU-OS DESKTOP                 Yusuf Alhazmi                 [ONLINE]       |\n");
-    puts("+------------------------------------------------------------------------------+\n\n");
-    puts("  Private kernel terminal | Type help for commands.\n\n");
-    puts("  Northern Borders University\n");
-    puts("  General Administration of Digital Transformation\n\n");
-    puts("  Private kernel ready. NBU-EXEC-1 program ABI active.\n");
-}
-
-static void desktop(void) {
-    char command[64];
-    desktop_banner();
-    for (;;) {
-        puts("\nnbu> ");
-        read_line(command, sizeof(command), 0);
-        if (text_equal(command, "help")) {
-            puts("Commands: help, exec /system/hello, clear, shutdown\n");
-        } else if (text_equal(command, "exec /system/hello")) {
-            if (nbu_exec("/system/hello") != 0) puts("exec: program not found\n");
-        } else if (text_equal(command, "clear")) {
-            desktop_banner();
-        } else if (text_equal(command, "shutdown")) {
-            clear_screen();
-            puts("NBU-OS is safe to power off.\n");
-            for (;;) __asm__ volatile ("hlt");
-        } else if (command[0] != 0) {
-            puts("nbu: unknown command. Type help.\n");
-        }
-    }
-}
-
-void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info) {
-    (void)multiboot_info;
-    serial_init();
-    serial_puts("NBU-OS: kernel entry reached\r\n");
-    if (multiboot_magic != 0x36d76289) {
-        clear_screen();
-        puts("NBU-OS: invalid Multiboot2 magic.\n");
-        serial_puts("NBU-OS: invalid Multiboot2 magic\r\n");
-        for (;;) __asm__ volatile ("hlt");
-    }
-    clear_screen();
-    puts("NBU-OS\n");
-    puts(NBU_SYSTEM_NAME " | " NBU_DEVELOPER "\n");
-    puts("Private kernel | " NBU_EXEC_ABI "\n");
-    installer();
-    while (!login()) { }
-    desktop();
-}
+#define FB_TAG_TYPE 8u
+#define MULTIBOOT2_MAGIC 0x36d76289u
+typedef struct { uint32_t type; uint32_t size; } mb_tag_header_t;
+typedef struct { uint32_t type; uint32_t size; uint64_t framebuffer_addr; uint32_t framebuffer_pitch; uint32_t framebuffer_width; uint32_t framebuffer_height; uint8_t framebuffer_bpp; uint8_t framebuffer_type; uint16_t reserved; } mb_framebuffer_tag_t;
+static volatile uint16_t *const vga=(uint16_t *)0xb8000; static uint16_t cursor; static char installed_user[32]; static uint8_t installed_password_hash[32];
+static volatile uint32_t *framebuffer; static uint32_t fb_pitch,fb_width,fb_height; static uint8_t fb_bpp; static int graphics_ready;
+typedef void (*program_entry_t)(void); typedef struct { const char *path; program_entry_t entry; } nbu_program_t;
+static uint8_t inb(uint16_t p){uint8_t v;__asm__ volatile("inb %1,%0":"=a"(v):"Nd"(p));return v;}
+static void outb(uint16_t p,uint8_t v){__asm__ volatile("outb %0,%1": :"a"(v),"Nd"(p));}
+static void serial_init(void){outb(0x3f9,0);outb(0x3fb,0x80);outb(0x3f8,3);outb(0x3f9,0);outb(0x3fb,3);outb(0x3fa,0xc7);outb(0x3fc,0x0b);}
+static void serial_puts(const char *t){while(*t){while(!(inb(0x3fd)&0x20)){}outb(0x3f8,(uint8_t)*t++);}}
+static void clear_screen(void){for(uint16_t i=0;i<80*25;++i)vga[i]=0x0720;cursor=0;}
+static void putc(char c){if(c=='\n'){cursor=(uint16_t)(((cursor/80)+1)*80);return;}vga[cursor++]=(uint16_t)(0x0f00u|(uint8_t)c);if(cursor>=80*25)cursor=0;}
+static void puts(const char *t){while(*t)putc(*t++);}
+static int text_equal(const char *a,const char *b){while(*a&&*b&&*a==*b){++a;++b;}return *a==*b;}
+static char key_to_ascii(uint8_t s){static const char m[]="?1234567890-=qwertyuiop[]?asdfghjkl;\\\\?zxcvbnm,./";if(s>=2&&s<=53)return m[s-1];if(s==57)return ' ';return 0;}
+static char read_key(void){for(;;){uint8_t s;if(!(inb(0x64)&1))continue;s=inb(0x60);if(s&0x80)continue;if(s==28)return '\n';if(s==14)return '\b';return key_to_ascii(s);}}
+static void read_line(char *b,uint32_t cap,int secret){uint32_t n=0;for(;;){char k=read_key();if(k=='\n'){putc('\n');b[n]=0;return;}if(k=='\b'){if(n){--n;if(cursor)--cursor;vga[cursor]=0x0720;}continue;}if(k&&n+1<cap){b[n++]=k;putc(secret?'*':k);}}}
+static void parse_framebuffer(uint32_t info){uint8_t *base=(uint8_t *)(uintptr_t)info;uint32_t total=*(uint32_t *)base;uint8_t *p=base+8;while((uint32_t)(p-base)+8<=total){mb_tag_header_t *h=(mb_tag_header_t *)p;if(h->type==0)break;if(h->type==FB_TAG_TYPE&&h->size>=sizeof(mb_framebuffer_tag_t)){mb_framebuffer_tag_t *t=(mb_framebuffer_tag_t *)p;if(t->framebuffer_type==1&&t->framebuffer_bpp==32&&t->framebuffer_addr&&t->framebuffer_width>=640&&t->framebuffer_height>=480){framebuffer=(volatile uint32_t *)(uintptr_t)t->framebuffer_addr;fb_pitch=t->framebuffer_pitch;fb_width=t->framebuffer_width;fb_height=t->framebuffer_height;fb_bpp=t->framebuffer_bpp;graphics_ready=1;return;}}p+=(h->size+7u)&~7u;}}
+static void fill_rect(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint32_t color){if(!graphics_ready||x>=fb_width||y>=fb_height)return;if(x+w>fb_width)w=fb_width-x;if(y+h>fb_height)h=fb_height-y;for(uint32_t yy=0;yy<h;++yy){volatile uint32_t *row=(volatile uint32_t *)((uintptr_t)framebuffer+y*fb_pitch+yy*fb_pitch+x*4u);for(uint32_t xx=0;xx<w;++xx)row[xx]=color;}}
+static uint8_t glyph_row(char c,uint8_t row){static const uint8_t f[36][7]={{14,17,17,31,17,17,17},{30,17,17,30,17,17,30},{14,17,16,16,16,17,14},{30,17,17,17,17,17,30},{31,16,16,30,16,16,31},{31,16,16,30,16,16,16},{14,17,16,23,17,17,15},{17,17,17,31,17,17,17},{14,4,4,4,4,4,14},{1,1,1,1,17,17,14},{17,18,20,24,20,18,17},{16,16,16,16,16,16,31},{17,27,21,21,17,17,17},{17,25,21,19,17,17,17},{14,17,17,17,17,17,14},{30,17,17,30,16,16,16},{14,17,17,17,21,18,13},{30,17,17,30,20,18,17},{15,16,16,14,1,1,30},{31,4,4,4,4,4,4},{17,17,17,17,17,17,14},{17,17,17,17,17,10,4},{17,17,17,21,21,27,17},{17,17,10,4,10,17,17},{17,17,10,4,4,4,4},{31,1,2,4,8,16,31},{14,17,19,21,25,17,14},{4,12,4,4,4,4,14},{14,17,1,2,4,8,31},{30,1,1,14,1,1,30},{2,6,10,18,31,2,2},{31,16,16,30,1,1,30},{14,16,16,30,17,17,14},{31,1,2,4,8,8,8},{14,17,17,14,17,17,14},{14,17,17,15,1,1,14},{14,17,17,15,5,9,22}};if(c>='a'&&c<='z')c=(char)(c-'a'+'A');if(c>='A'&&c<='Z')return f[c-'A'][row];if(c>='0'&&c<='9')return f[26+c-'0'][row];static const uint8_t dash[7]={0,0,0,31,0,0,0},colon[7]={0,4,0,0,0,4,0},slash[7]={1,2,2,4,8,8,16},dot[7]={0,0,0,0,0,12,12};if(c=='-')return dash[row];if(c==':')return colon[row];if(c=='/')return slash[row];if(c=='.')return dot[row];return 0;}
+static void draw_char(uint32_t x,uint32_t y,char c,uint32_t color,uint32_t scale){for(uint8_t r=0;r<7;++r){uint8_t bits=glyph_row(c,r);for(uint8_t col=0;col<5;++col)if(bits&(1u<<(4-col)))fill_rect(x+col*scale,y+r*scale,scale,scale,color);}}
+static void draw_text(uint32_t x,uint32_t y,const char *t,uint32_t color,uint32_t scale){uint32_t start=x;while(*t){if(*t=='\n'){y+=9*scale;x=start;}else{draw_char(x,y,*t,color,scale);x+=6*scale;}++t;}}
+static void draw_outline(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint32_t color){fill_rect(x,y,w,2,color);fill_rect(x,y+h-2,w,2,color);fill_rect(x,y,2,h,color);fill_rect(x+w-2,y,2,h,color);}
+static void gui_background(void){fill_rect(0,0,fb_width,fb_height,0x101828);fill_rect(0,0,fb_width,72,0x16243A);fill_rect(0,0,8,fb_height,0xB29671);fill_rect(8,fb_height-48,fb_width-8,48,0x16243A);}
+static void gui_title(const char *title,const char *subtitle){gui_background();draw_text(34,20,title,0xFFFFFF,3);draw_text(36,54,subtitle,0xB29671,1);}
+static void gui_card(uint32_t x,uint32_t y,uint32_t w,uint32_t h,const char *title,const char *detail,uint32_t accent){fill_rect(x,y,w,h,0x18263D);draw_outline(x,y,w,h,0x304563);fill_rect(x,y,6,h,accent);draw_text(x+22,y+22,title,0xFFFFFF,2);draw_text(x+22,y+62,detail,0xAAB8CB,1);}
+static void gui_home(void){gui_title("NBU-OS DESKTOP","NORTHERN BORDERS UNIVERSITY - DIGITAL TRANSFORMATION");gui_card(44,110,450,150,"FILES","1  OPEN FILE MANAGER",0x4EA7FF);gui_card(530,110,450,150,"TERMINAL","2  OPEN SYSTEM CONSOLE",0x59C28A);gui_card(44,285,450,150,"SETTINGS","3  SYSTEM CONFIGURATION",0xB29671);gui_card(530,285,450,150,"POWER","Q  SAFE SHUTDOWN",0xBC384F);gui_card(44,460,450,150,"SYSTEM","NBU-EXEC-1  X86_64  GUI MODE",0x6D7CFF);gui_card(530,460,450,150,"STATUS","ONLINE  FRAMEBUFFER 32-BIT",0x59C28A);draw_text(44,fb_height-34,"1 FILES   2 TERMINAL   3 SETTINGS   H HOME   Q POWER",0xD7DFEA,1);}
+static void gui_panel(const char *title,const char *line1,const char *line2){gui_title(title,"NBU-OS SYSTEM APPLICATION");fill_rect(80,120,fb_width-160,fb_height-220,0x18263D);draw_outline(80,120,fb_width-160,fb_height-220,0x304563);draw_text(112,160,line1,0xFFFFFF,2);draw_text(112,215,line2,0xAAB8CB,1);draw_text(112,fb_height-130,"H  RETURN TO DESKTOP",0xB29671,1);}
+static void gui_desktop(void){gui_home();for(;;){char k=read_key();if(k=='h'||k=='H')gui_home();else if(k=='1')gui_panel("FILES","NBU FILE MANAGER","FILESYSTEM SERVICE IS THE NEXT STORAGE MILESTONE.");else if(k=='2')gui_panel("TERMINAL","NBU SYSTEM CONSOLE","NBU-EXEC-1 IS ACTIVE. USER-MODE PROGRAMS ARE PLANNED.");else if(k=='3')gui_panel("SETTINGS","SYSTEM SETTINGS","DISPLAY SECURITY PLATFORM SETTINGS ARE PLANNED.");else if(k=='q'||k=='Q'){gui_title("NBU-OS","SHUTDOWN");draw_text(80,150,"NBU-OS IS SAFE TO POWER OFF",0xFFFFFF,3);draw_text(80,210,"SYSTEM HALTED",0xBC384F,2);for(;;)__asm__ volatile("cli; hlt");}}}
+static void hello_program(void){if(graphics_ready){gui_panel("HELLO","NBU EXEC PROGRAM","ABI NBU-EXEC-1");for(;;){char k=read_key();if(k=='h'||k=='H')return;}}clear_screen();puts("NBU EXEC PROGRAM\n\n");puts("Program: /system/hello\n");puts("ABI: NBU-EXEC-1\n");puts("Press ENTER to return.\n");while(read_key()!='\n'){}}
+static const nbu_program_t program_table[]={{"/system/hello",hello_program}};
+static int nbu_exec(const char *path){for(uint32_t i=0;i<sizeof(program_table)/sizeof(program_table[0]);++i)if(text_equal(path,program_table[i].path)){program_table[i].entry();return 0;}return -1;}
+static void installer(void){clear_screen();puts("NBU-OS INSTALLER\n");puts("NBU-EXEC-1 PRIVATE KERNEL EDITION\n\n");puts("Create the first local account.\n");puts("Username: ");read_line(installed_user,sizeof(installed_user),0);char password[32];puts("Password: ");read_line(password,sizeof(password),1);nbu_password_hash(password,installed_password_hash);for(uint32_t i=0;i<sizeof(password);++i)password[i]=0;puts("\nInstalling NBU-OS core... OK\n");puts("Installing graphical desktop... OK\n");puts("Registering private program ABI... OK\n");puts("Installation complete. Press ENTER to continue.");while(read_key()!='\n'){}}
+static int login(void){char username[32],password[32];uint8_t hash[32];clear_screen();puts("NBU-OS LOGIN\n\n");puts("User: ");read_line(username,sizeof(username),0);puts("Password: ");read_line(password,sizeof(password),1);nbu_password_hash(password,hash);for(uint32_t i=0;i<sizeof(password);++i)password[i]=0;if(text_equal(username,installed_user)&&nbu_secure_equal(hash,installed_password_hash,sizeof(hash)))return 1;puts("\nLogin failed. Press ENTER to retry.");while(read_key()!='\n'){}return 0;}
+void kernel_main(uint32_t magic,uint32_t info){serial_init();serial_puts("NBU-OS: kernel entry reached\r\n");if(magic!=MULTIBOOT2_MAGIC){clear_screen();puts("NBU-OS: invalid Multiboot2 magic.\n");for(;;)__asm__ volatile("cli; hlt");}parse_framebuffer(info);serial_puts(graphics_ready?"NBU-OS: framebuffer GUI ready\r\n":"NBU-OS: framebuffer unavailable, using VGA\r\n");clear_screen();puts("NBU-OS\n");puts(NBU_SYSTEM_NAME " | " NBU_DEVELOPER "\n");puts("Private kernel | " NBU_EXEC_ABI "\n");installer();while(!login()){}if(graphics_ready&&fb_bpp==32)gui_desktop();clear_screen();puts("NBU-OS desktop fallback\n");puts("GUI framebuffer was not available.\n");puts("Type exec /system/hello or shutdown.\n");for(;;){char command[64];puts("\nnbu> ");read_line(command,sizeof(command),0);if(text_equal(command,"exec /system/hello"))nbu_exec("/system/hello");else if(text_equal(command,"shutdown")){clear_screen();puts("NBU-OS is safe to power off.\n");for(;;)__asm__ volatile("cli; hlt");}else if(text_equal(command,"clear"))clear_screen();else if(command[0])puts("nbu: unknown command.\n");}}
