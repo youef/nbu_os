@@ -19,6 +19,7 @@ $(BUILD)/security.o: kernel/security.c include/nbu/security.h | $(BUILD)
 $(BUILD)/nbu-kernel.elf: $(BUILD)/multiboot2.o $(BUILD)/kernel.o $(BUILD)/security.o linker.ld
 	$(LD) $(LDFLAGS) -o $@ $(BUILD)/multiboot2.o $(BUILD)/kernel.o $(BUILD)/security.o
 iso: all
+	mkdir -p $(DIST)
 	command -v grub-mkrescue >/dev/null
 	command -v grub-file >/dev/null
 	command -v xorriso >/dev/null
