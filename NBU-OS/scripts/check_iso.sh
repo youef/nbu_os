@@ -19,7 +19,6 @@ fail() {
 }
 
 [[ -f "$image_path" ]] || fail "ISO not found: $image_path (run ./build.sh first)"
-[[ -f "$img_path" ]] || fail "raw IMG not found: $img_path"
 for tool in file xorriso grub-file; do
     command -v "$tool" >/dev/null || fail "required tool missing: $tool"
 done
@@ -40,9 +39,13 @@ grub-file --is-x86-multiboot2 "$kernel_file" || fail "kernel has no valid Multib
 
 el_torito_report=$(xorriso -indev "$image_path" -report_el_torito plain 2>&1) || fail "could not inspect El Torito boot records"
 grep -Fq 'BIOS' <<< "$el_torito_report" || fail "no BIOS El Torito boot entry found"
-cmp -s "$image_path" "$img_path" || fail "IMG must be a byte-for-byte raw hybrid image of the ISO"
+[[ -f "$img_path" ]] || fail "raw IMG not found: $img_path"
+command -v sgdisk >/dev/null || fail "sgdisk missing; required to inspect GPT IMG"
+gpt_report=$(sgdisk --print "$img_path" 2>&1) || fail "IMG is not a valid GPT disk image"
+grep -Fq 'NBU EFI' <<< "$gpt_report" || fail "EFI System Partition missing from IMG"
+grep -Fq 'BIOS Boot' <<< "$gpt_report" || fail "BIOS Boot partition missing from IMG"
 printf 'ISO structure OK: %s\n' "$image_path"
-printf 'Raw IMG structure OK: %s\n' "$img_path"
+printf 'GPT IMG structure OK: %s\n' "$img_path"
 
 if [[ $mode == boot ]]; then
     command -v qemu-system-x86_64 >/dev/null || fail "qemu-system-x86_64 missing; install QEMU or use --structure-only"
