@@ -13,7 +13,7 @@ jobs:
       - name: Install toolchain
         run: sudo apt-get update && sudo apt-get install -y build-essential binutils grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools gdisk dosfstools qemu-system-x86 file
       - name: Set release version
-        run: printf '0.4.0-alpha1\n' > NBU-OS/VERSION
+        run: printf '0.5.0-alpha2\n' > NBU-OS/VERSION
       - name: Build kernel
         working-directory: NBU-OS
         run: make clean all
