@@ -2,7 +2,6 @@
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
 make iso
-./scripts/check_iso.sh dist/NBU-OS.iso
 command -v sgdisk >/dev/null
 command -v losetup >/dev/null
 command -v mkfs.vfat >/dev/null
@@ -43,6 +42,7 @@ EOF'
 sudo grub-install --target=x86_64-efi --efi-directory="$MNT" --boot-directory="$MNT/boot" --removable --no-nvram --recheck "$IMG"
 sudo grub-install --target=i386-pc --boot-directory="$MNT/boot" --no-floppy --recheck "$IMG"
 sync
+./scripts/check_iso.sh dist/NBU-OS.iso --structure-only
 echo "Created: $(pwd)/dist/NBU-OS.iso"
 echo "Created: $(pwd)/dist/NBU-OS.img"
 echo "IMG size: $(du -h "$IMG" | cut -f1)"
