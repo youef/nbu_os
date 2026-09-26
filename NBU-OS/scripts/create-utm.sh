@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
-[[ -f build/NBU-OS.iso ]] || ./scripts/build.sh
-mkdir -p build/NBU-OS.utm
-cat > build/NBU-OS.utm/config.plist <<PLIST
+[[ -f dist/NBU-OS.iso ]] || ./scripts/build.sh
+rm -rf dist/NBU-OS.utm
+mkdir -p dist/NBU-OS.utm
+cat > dist/NBU-OS.utm/config.plist <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"
 <plist version="1.0"><dict>
 <key>Backend</key><string>QEMU</string>
 <key>ConfigurationVersion</key><integer>4</integer>
@@ -16,6 +17,5 @@ cat > build/NBU-OS.utm/config.plist <<PLIST
 <key>Serial</key><dict><key>Mode</key><string>None</string></dict>
 </dict></plist>
 PLIST
-cp build/NBU-OS.iso build/NBU-OS.utm/NBU-OS.iso
-echo "Created build/NBU-OS.utm; configure Standard PC (Q35 + ICH9) in UTM if available"
-
+cp dist/NBU-OS.iso dist/NBU-OS.utm/NBU-OS.iso
+echo "Created dist/NBU-OS.utm"
