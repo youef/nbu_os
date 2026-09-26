@@ -1,39 +1,29 @@
 # NBU-OS
 
-**نظام جامعة الحدود الشمالية**  
-الهوية المطورة: **يوسف الحازمي**  
-الجهة: **جامعة الحدود الشمالية - الإدارة العامة للتحول الرقمي**
+نظام جامعة الحدود الشمالية — v0.5.0-alpha1
 
-## v0.4.0-alpha1
+## الإقلاع والمنصات
+- BIOS + GRUB/Multiboot2.
+- UEFI x86_64 عبر GRUB removable boot.
+- ISO للـCD/DVD وUTM.
+- IMG خام 128MB بجدول GPT وESP وBIOS Boot Partition.
+- GUI framebuffer 1024x768x32.
+- VGA fallback.
+- PS/2 mouse input لتحريك المؤشر والنقر والسحب في بيئات QEMU/UTM التي تقدم PS/2.
+- لوحة المفاتيح تمر عبر لوحة المفاتيح الافتراضية في UTM.
 
-هذه نواة مستقلة قابلة للإقلاع لمعمارية x86_64 وليست Linux. أضيفت في هذه النسخة واجهة رسومية أصلية داخل النواة باستخدام framebuffer يقدمه GRUB/Multiboot2، مع وضع VGA احتياطي.
+## UTM على iPhone/iPad
+UTM على iOS يعتمد على QEMU. استخدم QEMU/x86_64، ثم أرفق NBU-OS.iso كـCD/DVD أو NBU-OS.img كقرص. يفضل تفعيل USB tablet، وإذا لم يتوفر استخدم Force PS/2 controller.
 
-### الجديد
-- Native 32-bit framebuffer GUI.
-- طلب 1024x768x32 من Multiboot2/GRUB.
-- سطح مكتب NBU-OS ببطاقات Files وTerminal وSettings وPower.
-- لوحات System وStatus.
-- تنقل بلوحة المفاتيح: 1 و2 و3 وH وQ.
-- استمرار VGA fallback عند غياب framebuffer.
+الإعداد المقترح: x86_64، QEMU، RAM 1024-2048 MB، نواتان CPU، Boot BIOS أو UEFI.
 
-### البناء
+## البناء
 cd NBU-OS
 ./scripts/build.sh
 
-النواتج:
-- dist/NBU-OS.iso
-- dist/NBU-OS.img
+النواتج: dist/NBU-OS.iso و dist/NBU-OS.img
 
-للاختبار:
-./scripts/run-qemu.sh
+الـIMG الآن قرص GPT حقيقي وليس مجرد نسخة باسم .img.
 
-في UTM استخدم x86_64 وBIOS واربط ISO، ويفضل 2048 MB RAM.
-
-### حدود النسخة
-لا يوجد حتى الآن نظام ملفات دائم، أو UEFI native، أو شبكة، أو عزل user-mode كامل. الواجهة الرسومية الحالية تستخدم خط bitmap مدمجاً وإدخال لوحة المفاتيح.
-
-## الهوية والترخيص
-تظهر الهوية في شاشة الإقلاع وسجل Serial. اعتماد الشعارات الرسمية والتراخيص والتوزيع المؤسسي مسؤولية الجهة المختصة.
-
-## ملاحظة أمنية
-بيانات الحساب الحالية محفوظة في الذاكرة فقط أثناء الإقلاع. لا تستخدم هذه النسخة لبيانات اعتماد مؤسسية حقيقية قبل إضافة تخزين دائم مشفّر وsigned boot وعزل user-mode ومراجعة أمنية مستقلة.
+## الحدود الحالية
+الواجهة ما زالت Kernel-native وليست Window Manager كاملًا. دعم USB HID/tablet الأصلي، اللمس المباشر المتقدم، الملفات الدائمة، الشبكة، UEFI runtime services والعزل الكامل لبرامج user-mode مراحل لاحقة.
