@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install toolchain
-        run: sudo apt-get update && sudo apt-get install -y build-essential binutils grub-pc-bin grub-common xorriso qemu-system-x86 file
+        run: sudo apt-get update && sudo apt-get install -y build-essential binutils grub-pc-bin grub-common xorriso mtools qemu-system-x86 file
       - name: Set release version
         run: printf '0.4.0-alpha1\n' > NBU-OS/VERSION
       - name: Build kernel
