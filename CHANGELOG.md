@@ -1,5 +1,19 @@
 # NBU-OS Changelog
 
+## v0.5.0-alpha1 - 2026-09-26
+
+### Added
+- UEFI x86_64 GRUB removable boot path.
+- Real GPT 128MB disk IMG with EFI System Partition and BIOS Boot Partition.
+- UTM iOS configuration and usage guide.
+- PS/2 mouse input path for QEMU/UTM.
+- Build pipeline dependencies for UEFI, GPT and FAT image creation.
+
+### Input
+- iOS UTM on-screen keyboard is supported through the virtual keyboard path.
+- Touch/drag can use UTM Touch Mode when an emulated USB tablet is available; PS/2 mouse is the fallback.
+
+
 ## v0.4.0-alpha1 - 2026-09-26
 
 ### Added
