@@ -29,6 +29,6 @@ iso: all
 	cp VERSION $(BUILD)/iso/boot/NBU-OS.version
 	printf '%s\n' 'set timeout=0' 'set default=0' 'set gfxmode=1024x768x32' 'set gfxpayload=1024x768x32' 'insmod all_video' 'menuentry "NBU-OS GUI" {' '  multiboot2 /boot/nbu-kernel.elf' '  boot' '}' > $(BUILD)/iso/boot/grub/grub.cfg
 	grub-mkrescue -o $(DIST)/NBU-OS.iso $(BUILD)/iso
-	cp $(DIST)/NBU-OS.iso $(DIST)/NBU-OS.img
+	@echo "Raw UEFI/BIOS IMG is created by scripts/build.sh"
 clean:
 	rm -rf $(BUILD) $(DIST)
