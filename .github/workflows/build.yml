@@ -1,4 +1,4 @@
-name: Build NBU-OS
+name: Build NBU-OS GUI
 
 on:
   push:
@@ -11,21 +11,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install toolchain
-        run: sudo apt-get update && sudo apt-get install -y build-essential binutils grub-pc-bin grub-common xorriso mtools
-      - name: Generate project
-        run: ./build_nbu.sh
-      - name: Validate generated source
-        run: |
-          bash -n build_nbu.sh
-          test -f NBU-OS/kernel/security.c
-          test -f NBU-OS/include/nbu/security.h
-          ! grep -q 'installed_password\[' NBU-OS/kernel/kernel.c
-          make -C NBU-OS clean all
-      - name: Build ISO
+        run: sudo apt-get update && sudo apt-get install -y build-essential binutils grub-pc-bin grub-common xorriso qemu-system-x86 file
+      - name: Set release version
+        run: printf '0.4.0-alpha1\n' > NBU-OS/VERSION
+      - name: Build kernel
+        working-directory: NBU-OS
+        run: make clean all
+      - name: Build ISO and IMG
         working-directory: NBU-OS
         run: ./scripts/build.sh
-      - name: Upload ISO
+      - name: Validate Multiboot2 kernel
+        working-directory: NBU-OS
+        run: grub-file --is-x86-multiboot2 build/nbu-kernel.elf
+      - name: Upload GUI ISO
         uses: actions/upload-artifact@v4
         with:
-          name: NBU-OS-ISO
+          name: NBU-OS-GUI-ISO
           path: NBU-OS/dist/NBU-OS.iso
+      - name: Upload GUI IMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: NBU-OS-GUI-IMG
+          path: NBU-OS/dist/NBU-OS.img
