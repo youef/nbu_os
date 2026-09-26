@@ -5,6 +5,13 @@ multiboot_header:
     .long 0
     .long multiboot_header_end - multiboot_header
     .long -(0xe85250d6 + (multiboot_header_end - multiboot_header))
+    .short 5
+    .short 0
+    .long 20
+    .long 1024
+    .long 768
+    .long 32
+    .align 8
     .short 0
     .short 0
     .long 8
@@ -22,14 +29,12 @@ _start:
     movl %eax, boot_magic
     movl %ebx, boot_info
     movl $stack_top, %esp
-
     movl $1, %eax
     cpuid
     testl $(1 << 6), %edx
     jz boot_error
     testl $(1 << 3), %edx
     jz boot_error
-
     movl $0x80000000, %eax
     cpuid
     cmpl $0x80000001, %eax
@@ -38,14 +43,12 @@ _start:
     cpuid
     testl $(1 << 29), %edx
     jz boot_error
-
     movl $pdpt_table, %eax
     orl $3, %eax
     movl %eax, pml4_table
     movl $pd_table, %eax
     orl $3, %eax
     movl %eax, pdpt_table
-
     xorl %ecx, %ecx
 1:
     movl %ecx, %eax
@@ -56,7 +59,6 @@ _start:
     incl %ecx
     cmpl $512, %ecx
     jne 1b
-
     movl %cr4, %eax
     orl $0x30, %eax
     movl %eax, %cr4
@@ -71,7 +73,6 @@ _start:
     movl %eax, %cr0
     lgdt gdt64_pointer
     ljmp $0x08, $long_mode_start
-
 boot_error:
     movl $boot_error_message, %esi
     movl $0xb8000, %edi
@@ -87,7 +88,6 @@ boot_error:
     cli
     hlt
     jmp 3b
-
 .code64
 long_mode_start:
     movw $0x10, %ax
@@ -103,7 +103,6 @@ long_mode_start:
     cli
     hlt
     jmp 4b
-
 .section .rodata,"a"
 .align 8
 gdt64:
@@ -116,14 +115,12 @@ gdt64_pointer:
     .long gdt64
 boot_error_message:
     .asciz "NBU-OS: x86_64 long mode unavailable"
-
 .section .data,"aw"
 .align 4
 boot_magic:
     .long 0
 boot_info:
     .long 0
-
 .section .bss,"aw",@nobits
 .align 4096
 pml4_table:
@@ -138,5 +135,4 @@ pd_table:
 stack_bottom:
     .skip 16384
 stack_top:
-
 .section .note.GNU-stack,"",@progbits
