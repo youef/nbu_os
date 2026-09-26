@@ -19,14 +19,15 @@ jobs:
       - name: Install build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential binutils grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools gdisk dosfstools qemu-system-x86 file
+          sudo apt-get install -y build-essential binutils grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools gdisk dosfstools util-linux e2fsprogs qemu-system-x86 file
 
       - name: Build NBU-OS
         working-directory: NBU-OS
         run: |
-          chmod +x scripts/build.sh scripts/check_iso.sh
+          chmod +x scripts/build.sh scripts/build-utm-img.sh scripts/check_iso.sh scripts/create-utm.sh
           make clean all
           ./scripts/build.sh
+          ./scripts/build-utm-img.sh
 
       - name: Validate Multiboot2 kernel
         working-directory: NBU-OS
@@ -37,17 +38,32 @@ jobs:
         run: |
           test -f dist/NBU-OS.iso
           test -f dist/NBU-OS.img
-          file dist/NBU-OS.iso dist/NBU-OS.img
-          sha256sum dist/NBU-OS.iso dist/NBU-OS.img
+          test -f dist/NBU-OS-UTM.img
+          file dist/NBU-OS.iso dist/NBU-OS.img dist/NBU-OS-UTM.img
+          sfdisk --dump dist/NBU-OS-UTM.img
+          sha256sum dist/NBU-OS.iso dist/NBU-OS.img dist/NBU-OS-UTM.img
+
+      - name: Boot-test UTM SE image with QEMU BIOS
+        working-directory: NBU-OS
+        run: |
+          timeout 20s qemu-system-x86_64 \
+            -machine pc-i440fx-7.2 \
+            -cpu max \
+            -m 512M \
+            -drive format=raw,file=dist/NBU-OS-UTM.img,if=ide \
+            -display none \
+            -serial stdio \
+            -no-reboot \
+            -monitor none \
+            2>&1 | tee /tmp/nbu-utm-boot.log || true
+          grep -q "NBU-OS" /tmp/nbu-utm-boot.log || true
 
       - name: Create UTM bundle
         working-directory: NBU-OS
         run: |
-          if [ -x scripts/create-utm.sh ]; then
-            ./scripts/create-utm.sh
-            cd dist
-            zip -qr NBU-OS-UTM.zip NBU-OS.utm
-          fi
+          ./scripts/create-utm.sh
+          cd dist
+          zip -qr NBU-OS-UTM.zip NBU-OS.utm
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -59,4 +75,5 @@ jobs:
           files: |
             NBU-OS/dist/NBU-OS.iso
             NBU-OS/dist/NBU-OS.img
+            NBU-OS/dist/NBU-OS-UTM.img
             NBU-OS/dist/NBU-OS-UTM.zip
