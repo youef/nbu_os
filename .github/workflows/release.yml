@@ -19,7 +19,7 @@ jobs:
       - name: Install build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential binutils grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools gdisk dosfstools util-linux e2fsprogs qemu-system-x86 file
+          sudo apt-get install -y build-essential binutils grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools gdisk dosfstools util-linux e2fsprogs qemu-system-x86 file zip
 
       - name: Build NBU-OS
         working-directory: NBU-OS
@@ -58,12 +58,22 @@ jobs:
             2>&1 | tee /tmp/nbu-utm-boot.log || true
           grep -q "NBU-OS" /tmp/nbu-utm-boot.log || true
 
-      - name: Create UTM bundle
+      - name: Create ready-to-import UTM bundle
         working-directory: NBU-OS
         run: |
           ./scripts/create-utm.sh
+          test -f dist/NBU-OS.utm/config.plist
+          test -f dist/NBU-OS.utm/NBU-OS-UTM.img
+          test -f dist/NBU-OS.utm/SHA256SUMS
+          grep -q "<key>UEFIBoot</key>" dist/NBU-OS.utm/config.plist
+          grep -q "<false/>" dist/NBU-OS.utm/config.plist
+          grep -q "<key>ImageType</key>" dist/NBU-OS.utm/config.plist
+          grep -q "<string>Disk</string>" dist/NBU-OS.utm/config.plist
+          grep -q "<string>IDE</string>" dist/NBU-OS.utm/config.plist
+          grep -q "<string>NBU-OS-UTM.img</string>" dist/NBU-OS.utm/config.plist
           cd dist
-          zip -qr NBU-OS-UTM.zip NBU-OS.utm
+          zip -qr NBU-OS-UTM.utm.zip NBU-OS.utm
+          unzip -t NBU-OS-UTM.utm.zip
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -76,4 +86,4 @@ jobs:
             NBU-OS/dist/NBU-OS.iso
             NBU-OS/dist/NBU-OS.img
             NBU-OS/dist/NBU-OS-UTM.img
-            NBU-OS/dist/NBU-OS-UTM.zip
+            NBU-OS/dist/NBU-OS-UTM.utm.zip
