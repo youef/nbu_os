@@ -1,0 +1,29 @@
+name: Build YOUSEF Browser OS
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'YOUSEF-BROWSER-OS/**'
+      - '.github/workflows/browser-os.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build RAW disk image
+        run: |
+          sudo chmod +x YOUSEF-BROWSER-OS/build-image.sh
+          sudo YOUSEF-BROWSER-OS/build-image.sh
+          mv YOUSEF-Browser-OS.img YOUSEF-Browser-OS-x86_64.img
+          sha256sum YOUSEF-Browser-OS-x86_64.img > YOUSEF-Browser-OS-x86_64.img.sha256
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YOUSEF-Browser-OS-x86_64
+          path: |
+            YOUSEF-Browser-OS-x86_64.img
+            YOUSEF-Browser-OS-x86_64.img.sha256
